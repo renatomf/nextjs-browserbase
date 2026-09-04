@@ -1,8 +1,10 @@
 "use client"
 
-import * as React from "react"
-import { Plus, Workflow } from "lucide-react"
+import { useTransition } from "react"
+import { Plus, Workflow as WorkflowIcon } from "lucide-react"
 
+import type { Workflow } from "@/lib/db/schema"
+import { generateSlug } from "@/features/workflows/lib/generate-slug"
 import {
   Popover,
   PopoverContent,
@@ -20,30 +22,29 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 
-const workflows = [
-  { id: "dominant-wasp", name: "dominant-wasp" },
-  { id: "honest-reindeer", name: "honest-reindeer" },
-  { id: "expected-llama", name: "expected-llama" },
-  { id: "essential-ocelot", name: "essential-ocelot" },
-  { id: "creepy-echidna", name: "creepy-echidna" },
-  { id: "eastern-silkworm", name: "eastern-silkworm" },
-  { id: "cultural-lion", name: "cultural-lion" },
-  { id: "proud-weasel", name: "proud-weasel" },
-  { id: "regional-bonobo", name: "regional-bonobo" },
-]
+interface WorkflowNavProps {
+  workflows: Workflow[]
+  createWorkflowAction: (name: string) => Promise<void>
+}
 
-export function WorkflowNav() {
+export function WorkflowNav({
+  workflows,
+  createWorkflowAction,
+}: WorkflowNavProps) {
   const { state, isMobile } = useSidebar()
-  const [activeWorkflow, setActiveWorkflow] = React.useState(workflows[0].id)
+  const [isPending, startTransition] = useTransition()
 
   const isCollapsed = state === "collapsed" && !isMobile
 
+  const createWorkflow = () => {
+    startTransition(async () => {
+      await createWorkflowAction(generateSlug())
+    })
+  }
+
   const workflowItems = workflows.map((workflow) => (
     <SidebarMenuItem key={workflow.id}>
-      <SidebarMenuButton
-        isActive={workflow.id === activeWorkflow}
-        onClick={() => setActiveWorkflow(workflow.id)}
-      >
+      <SidebarMenuButton>
         <span>{workflow.name}</span>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -58,14 +59,17 @@ export function WorkflowNav() {
               <Popover>
                 <PopoverTrigger asChild>
                   <SidebarMenuButton tooltip="Workflows">
-                    <Workflow />
+                    <WorkflowIcon />
                     <span className="sr-only">Workflows</span>
                   </SidebarMenuButton>
                 </PopoverTrigger>
                 <PopoverContent side="right" align="start" className="p-1">
                   <SidebarMenu>
                     <SidebarMenuItem>
-                      <SidebarMenuButton>
+                      <SidebarMenuButton
+                        onClick={createWorkflow}
+                        disabled={isPending}
+                      >
                         <Plus />
                         <span>New workflow</span>
                       </SidebarMenuButton>
@@ -85,7 +89,11 @@ export function WorkflowNav() {
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Workflows</SidebarGroupLabel>
-      <SidebarGroupAction title="New workflow">
+      <SidebarGroupAction
+        title="New workflow"
+        onClick={createWorkflow}
+        disabled={isPending}
+      >
         <Plus />
         <span className="sr-only">New workflow</span>
       </SidebarGroupAction>

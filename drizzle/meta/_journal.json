@@ -8,6 +8,13 @@
       "when": 1788550761057,
       "tag": "0000_military_frog_thor",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788551860173,
+      "tag": "0001_gray_triton",
+      "breakpoints": true
     }
   ]
 }
