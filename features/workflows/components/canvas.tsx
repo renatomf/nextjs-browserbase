@@ -1,22 +1,19 @@
 "use client"
 
-import { useCallback, useSyncExternalStore } from "react"
+import { useSyncExternalStore } from "react"
 import type { CSSProperties } from "react"
 import {
-  addEdge,
   // Background,
   // BackgroundVariant,
   Controls,
   // MiniMap,
   ReactFlow,
-  useEdgesState,
-  useNodesState,
   ConnectionLineType,
   type ColorMode,
-  type Connection,
   type Edge,
   NodeTypes,
 } from "@xyflow/react"
+import { useLiveblocksFlow, Cursors } from "@liveblocks/react-flow"
 import { useTheme } from "next-themes"
 
 
@@ -24,6 +21,9 @@ import { StepNode } from "./step-node";
 import type { StepNodeType } from "../nodes/node-registry"
 
 import "@xyflow/react/dist/style.css";
+import "@liveblocks/react-ui/styles.css";
+import "@liveblocks/react-flow/styles.css";
+
 
 const nodeTypes: NodeTypes = { step: StepNode }
 
@@ -58,14 +58,21 @@ function useMounted() {
 export function Canvas() {
   const mounted = useMounted()
   const { resolvedTheme } = useTheme()
-  const [nodes, , onNodesChange] = useNodesState(initialNodes)
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
 
-  const onConnect = useCallback(
-    (connection: Connection) =>
-      setEdges((currentEdges) => addEdge(connection, currentEdges)),
-    [setEdges],
-  )
+  // Storage-backed flow state. Suspends until Storage is ready — the
+  // ClientSideSuspense boundary in <Room> covers this component.
+  const {
+    nodes,
+    edges,
+    onNodesChange,
+    onEdgesChange,
+    onConnect,
+    onDelete,
+  } = useLiveblocksFlow<StepNodeType, Edge>({
+    suspense: true,
+    nodes: { initial: initialNodes },
+    edges: { initial: initialEdges },
+  })
 
   // React Flow resolves "system" with matchMedia during render, which differs
   // between server and client. Pin to light until mounted so both agree.
@@ -81,6 +88,7 @@ export function Canvas() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onDelete={onDelete}
         colorMode={colorMode}
         fitView
         connectionLineType={ConnectionLineType.SmoothStep}
@@ -101,6 +109,7 @@ export function Canvas() {
         {/* <Background variant={BackgroundVariant.Dots} gap={16} size={1} /> */}
         {/* <MiniMap pannable zoomable /> */}
         <Controls />
+        <Cursors />
       </ReactFlow>
     </div>
   )
