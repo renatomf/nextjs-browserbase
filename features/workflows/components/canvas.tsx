@@ -109,7 +109,7 @@ export function Canvas() {
         }
         maxZoom={1}
       >
-        <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
+        {/* <Background variant={BackgroundVariant.Dots} gap={16} size={1} /> */}
         <MiniMap pannable zoomable />
         <Controls />
       </ReactFlow>
