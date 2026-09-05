@@ -1,6 +1,8 @@
 "use client"
 
 import { useTransition } from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { Plus, Workflow as WorkflowIcon } from "lucide-react"
 
 import type { Workflow } from "@/lib/db/schema"
@@ -31,24 +33,31 @@ export function WorkflowNav({
   workflows,
   createWorkflowAction,
 }: WorkflowNavProps) {
-  const { state, isMobile } = useSidebar()
+  const { state } = useSidebar()
+  const pathname = usePathname()
   const [isPending, startTransition] = useTransition()
 
-  const isCollapsed = state === "collapsed" && !isMobile
+  const isCollapsed = state === "collapsed"
 
-  const createWorkflow = () => {
+  const handleCreateWorkflow = () => {
     startTransition(async () => {
       await createWorkflowAction(generateSlug())
     })
   }
 
-  const workflowItems = workflows.map((workflow) => (
-    <SidebarMenuItem key={workflow.id}>
-      <SidebarMenuButton>
-        <span>{workflow.name}</span>
-      </SidebarMenuButton>
-    </SidebarMenuItem>
-  ))
+  const workflowItems = workflows.map((workflow) => {
+    const href = `/workflows/${workflow.id}`
+
+    return (
+      <SidebarMenuItem key={workflow.id}>
+        <SidebarMenuButton asChild isActive={pathname === href}>
+          <Link href={href}>
+            <span>{workflow.name}</span>
+          </Link>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    )
+  })
 
   if (isCollapsed) {
     return (
@@ -67,7 +76,7 @@ export function WorkflowNav({
                   <SidebarMenu>
                     <SidebarMenuItem>
                       <SidebarMenuButton
-                        onClick={createWorkflow}
+                        onClick={handleCreateWorkflow}
                         disabled={isPending}
                       >
                         <Plus />
@@ -91,7 +100,7 @@ export function WorkflowNav({
       <SidebarGroupLabel>Workflows</SidebarGroupLabel>
       <SidebarGroupAction
         title="New workflow"
-        onClick={createWorkflow}
+        onClick={handleCreateWorkflow}
         disabled={isPending}
       >
         <Plus />

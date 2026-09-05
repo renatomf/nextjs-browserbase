@@ -7,3 +7,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 # Database types
 
 Derive database types from the Drizzle schema — never hand-write custom or partial shapes for table rows. Export typeof table.$inferSelect (and $inferInsert when needed) from lib/schema.ts and import it. When a consumer needs only some columns, narrow with Pick<Row, ...> / Omit<Row, ...> rather than redeclaring a literal type. Don't add an insert type where db.insert(...).values() already enforces the shape.
+
+# JSX text entities
+
+Never write a raw `'`, `"`, `<`, or `>` in JSX text content — `react/no-unescaped-entities` fails the build. Escape them as HTML entities: `&apos;` for apostrophes, `&quot;` for quotes, `&lt;`/`&gt;` for angle brackets. This applies only to literal text between tags; apostrophes inside string props, attribute values, comments, and non-JSX code (including plain `.ts` files) are fine as-is. Prefer rewording over an escape-heavy sentence when the copy reads just as well without the contraction.
