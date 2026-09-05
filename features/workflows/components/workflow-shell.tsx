@@ -1,4 +1,5 @@
 import { runWorkflowAction } from "@/features/workflows/actions"
+import { Canvas } from "@/features/workflows/components/canvas"
 import { RightSidebar } from "@/features/workflows/components/right-sidebar"
 import {
   ResizableHandle,
@@ -24,9 +25,7 @@ export function WorkflowShell({ workflowId }: WorkflowShellProps) {
           className="size-full"
         >
           <ResizablePanel minSize="18rem">
-            <div className="flex size-full items-center justify-center">
-              <p className="text-sm text-muted-foreground">Canvas</p>
-            </div>
+            <Canvas />
           </ResizablePanel>
           <ResizableHandle withHandle />
           <ResizablePanel defaultSize="8rem" minSize="6rem">
