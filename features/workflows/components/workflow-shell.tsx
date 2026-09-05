@@ -1,3 +1,5 @@
+import { runWorkflowAction } from "@/features/workflows/actions"
+import { RightSidebar } from "@/features/workflows/components/right-sidebar"
 import {
   ResizableHandle,
   ResizablePanel,
@@ -36,9 +38,10 @@ export function WorkflowShell({ workflowId }: WorkflowShellProps) {
       </ResizablePanel>
       <ResizableHandle withHandle />
       <ResizablePanel defaultSize="16rem" minSize="14rem" maxSize="36rem">
-        <div className="flex size-full items-center justify-center">
-          <p className="text-sm text-muted-foreground">Inspector</p>
-        </div>
+        <RightSidebar
+          workflowId={workflowId}
+          runWorkflowAction={runWorkflowAction}
+        />
       </ResizablePanel>
     </ResizablePanelGroup>
   )

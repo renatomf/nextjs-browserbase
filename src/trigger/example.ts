@@ -1,4 +1,4 @@
-import { logger, task, wait } from "@trigger.dev/sdk"
+import { logger, metadata, task, wait } from "@trigger.dev/sdk"
 
 export type HelloWorldPayload = {
   message?: string
@@ -11,7 +11,15 @@ export const helloWorldTask = task({
   run: async (payload: HelloWorldPayload, { ctx }) => {
     logger.log("Hello, world!", { payload, ctx })
 
-    await wait.for({ seconds: 5 })
+    metadata.set("status", "Starting up").set("progress", 10)
+
+    await wait.for({ seconds: 2 })
+
+    metadata.set("status", "Running steps").set("progress", 55)
+
+    await wait.for({ seconds: 3 })
+
+    metadata.set("status", "Wrapping up").set("progress", 100)
 
     return {
       message: payload.message ?? "Task finished successfully!",
