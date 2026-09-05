@@ -38,3 +38,5 @@ next-env.d.ts
 /design
 /specs
 .neon
+
+.trigger

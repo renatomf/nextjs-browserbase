@@ -11,3 +11,9 @@ Derive database types from the Drizzle schema — never hand-write custom or par
 # JSX text entities
 
 Never write a raw `'`, `"`, `<`, or `>` in JSX text content — `react/no-unescaped-entities` fails the build. Escape them as HTML entities: `&apos;` for apostrophes, `&quot;` for quotes, `&lt;`/`&gt;` for angle brackets. This applies only to literal text between tags; apostrophes inside string props, attribute values, comments, and non-JSX code (including plain `.ts` files) are fine as-is. Prefer rewording over an escape-heavy sentence when the copy reads just as well without the contraction.
+
+<!-- TRIGGER.DEV SKILLS START -->
+## Trigger.dev agent skills
+
+This project has Trigger.dev agent skills installed in `.agents/skills/`. Before writing or changing Trigger.dev code (background tasks, scheduled tasks, realtime, or chat.agent AI agents), load the most relevant skill: `trigger-authoring-chat-agent`, `trigger-authoring-tasks`, `trigger-chat-agent-advanced`, `trigger-cost-savings`, `trigger-getting-started`, `trigger-realtime-and-frontend`.
+<!-- TRIGGER.DEV SKILLS END -->
