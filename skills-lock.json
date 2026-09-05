@@ -49,6 +49,12 @@
       "skillPath": "skills/core/clerk-setup/SKILL.md",
       "computedHash": "790d70ab1586dc693123a128ce86c8db37fe6ffd992a84d1bdd3d056d5b8a839"
     },
+    "liveblocks-best-practices": {
+      "source": "liveblocks/skills",
+      "sourceType": "github",
+      "skillPath": "skills/liveblocks-best-practices/SKILL.md",
+      "computedHash": "df4f54f66e81c580d25c5fee989768368837df694ab63c0f4a0fd70500cd16af"
+    },
     "neon": {
       "source": "neondatabase/agent-skills",
       "sourceType": "github",
@@ -60,6 +66,12 @@
       "sourceType": "github",
       "skillPath": "skills/neon-postgres/SKILL.md",
       "computedHash": "2989af6804b11be25eb956dc0660ed503a3f4dd1c7a0b7bc8f3b5981e1db2270"
+    },
+    "yjs-best-practices": {
+      "source": "liveblocks/skills",
+      "sourceType": "github",
+      "skillPath": "skills/yjs-best-practices/SKILL.md",
+      "computedHash": "1b93ffc4d38cd8fe6fd653b96c854ac53d8f17f1e5566a556f76908a9f2b02ab"
     }
   }
 }
