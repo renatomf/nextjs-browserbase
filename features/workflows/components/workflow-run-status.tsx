@@ -2,7 +2,7 @@
 
 import { useRealtimeRun } from "@trigger.dev/react-hooks"
 
-import type { helloWorldTask } from "@/src/trigger/example"
+import type { helloWorldTask } from "@/trigger/example"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Spinner } from "@/components/ui/spinner"

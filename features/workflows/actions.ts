@@ -5,7 +5,7 @@ import { tasks } from "@trigger.dev/sdk"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
-import type { helloWorldTask } from "@/src/trigger/example"
+import type { helloWorldTask } from "@/trigger/example"
 import { createWorkflow } from "@/features/workflows/data"
 
 export async function createWorkflowAction(name: string) {

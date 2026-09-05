@@ -4,7 +4,7 @@ import { auth } from "@clerk/nextjs/server"
 import { tasks } from "@trigger.dev/sdk"
 
 // Type-only import: keeps the task code out of your app bundle.
-import type { helloWorldTask } from "@/src/trigger/example"
+import type { helloWorldTask } from "@/trigger/example"
 
 export async function triggerHelloWorldAction(message: string) {
   const { orgId } = await auth()

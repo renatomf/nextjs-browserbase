@@ -4,10 +4,10 @@ import { useCallback, useSyncExternalStore } from "react"
 import type { CSSProperties } from "react"
 import {
   addEdge,
-  Background,
-  BackgroundVariant,
+  // Background,
+  // BackgroundVariant,
   Controls,
-  MiniMap,
+  // MiniMap,
   ReactFlow,
   useEdgesState,
   useNodesState,
@@ -15,36 +15,28 @@ import {
   type ColorMode,
   type Connection,
   type Edge,
-  type Node,
+  NodeTypes,
 } from "@xyflow/react"
 import { useTheme } from "next-themes"
 
-import "@xyflow/react/dist/style.css"
 
-const initialNodes: Node[] = [
+import { StepNode } from "./step-node";
+import type { StepNodeType } from "../nodes/node-registry"
+
+import "@xyflow/react/dist/style.css";
+
+const nodeTypes: NodeTypes = { step: StepNode }
+
+const initialNodes: StepNodeType[] = [
   {
-    id: "trigger",
-    type: "input",
+    id: "start",
+    type: "step",
     position: { x: 0, y: 0 },
-    data: { label: "Trigger" },
+    data: { type: "start", kind: "trigger", title: "Start", values: {} },
   },
-  {
-    id: "browse",
-    position: { x: 0, y: 120 },
-    data: { label: "Browse page" },
-  },
-  {
-    id: "extract",
-    position: { x: 0, y: 240 },
-    data: { label: "Extract data" },
-  },
-  {
-    id: "done",
-    type: "output",
-    position: { x: 0, y: 360 },
-    data: { label: "Done" },
-  },
-]
+];
+
+const initialEdges: Edge[] = [];
 
 const emptySubscribe = () => () => {}
 
@@ -61,11 +53,7 @@ function useMounted() {
   )
 }
 
-const initialEdges: Edge[] = [
-  { id: "trigger-browse", source: "trigger", target: "browse" },
-  { id: "browse-extract", source: "browse", target: "extract" },
-  { id: "extract-done", source: "extract", target: "done" },
-]
+
 
 export function Canvas() {
   const mounted = useMounted()
@@ -87,6 +75,7 @@ export function Canvas() {
   return (
     <div className="size-full">
       <ReactFlow
+        nodeTypes={nodeTypes}
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
@@ -110,7 +99,7 @@ export function Canvas() {
         maxZoom={1}
       >
         {/* <Background variant={BackgroundVariant.Dots} gap={16} size={1} /> */}
-        <MiniMap pannable zoomable />
+        {/* <MiniMap pannable zoomable /> */}
         <Controls />
       </ReactFlow>
     </div>

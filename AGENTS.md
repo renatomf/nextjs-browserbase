@@ -4,6 +4,10 @@
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
+# React Flow
+
+Do not write React Flow (`@xyflow/react`) code from memory — the API has moved (package rename, `reactflow` -> `@xyflow/react`, v11 -> v12 hook/prop/type changes) and training data is unreliable here. Before adding or changing anything that touches React Flow — components, hooks, node/edge types, handles, props, styling, or provider setup — fetch https://reactflow.dev/llms.txt and follow its links to the specific docs pages for the APIs in question, then implement from what the docs actually say. Same rule when debugging React Flow behavior: check the current docs before guessing.
+
 # Database types
 
 Derive database types from the Drizzle schema — never hand-write custom or partial shapes for table rows. Export typeof table.$inferSelect (and $inferInsert when needed) from lib/schema.ts and import it. When a consumer needs only some columns, narrow with Pick<Row, ...> / Omit<Row, ...> rather than redeclaring a literal type. Don't add an insert type where db.insert(...).values() already enforces the shape.
