@@ -108,6 +108,8 @@ function FieldInput({
 
 // The Editor tab: one input per field on the selected node, or an empty state.
 function Inspector({ node }: { node: StepNodeType | undefined }) {
+  const { updateNodeData } = useReactFlow<StepNodeType>()
+
   if (!node) {
     return (
       <Section title="Editor">
@@ -134,8 +136,9 @@ function Inspector({ node }: { node: StepNodeType | undefined }) {
                 field={field}
                 value={values[field.key] ?? ""}
                 onChange={(value) => {
-                  // TODO: save the edit back onto the selected node.
-                  void value
+                  updateNodeData(node.id, {
+                    values: { ...values, [field.key]: value },
+                  })
                 }}
               />
             </div>
