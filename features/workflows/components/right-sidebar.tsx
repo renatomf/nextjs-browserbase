@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useTransition } from "react"
 import { MoreHorizontal, Play, Trash2 } from "lucide-react"
 import { useReactFlow, useStore, useStoreApi } from "@xyflow/react"
 import { toast } from "sonner"
@@ -20,8 +20,9 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { ResizablePanel } from "@/components/ui/resizable"
+import { Spinner } from "@/components/ui/spinner"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { WorkflowRunStatus } from "@/features/workflows/components/workflow-run-status"
 import { cn } from "@/lib/utils"
 
 import {
@@ -269,17 +270,19 @@ function ActionsMenu() {
   )
 }
 
-// Kicks off a run of the current workflow.
-function RunButton() {
+// Kicks off a run of the current workflow. The run itself is owned by the
+// sidebar below, which also renders the live status of the run this starts.
+function RunButton({
+  isPending,
+  onRun,
+}: {
+  isPending: boolean
+  onRun: () => void
+}) {
+  // TODO: validate the graph before running (and toggle to Stop while running).
   return (
-    <Button
-      size="sm"
-      variant="secondary"
-      onClick={() => {
-        // TODO: validate the graph and run the workflow (toggle to Stop while running).
-      }}
-    >
-      <Play fill="primary" />
+    <Button size="sm" variant="secondary" onClick={onRun} disabled={isPending}>
+      {isPending ? <Spinner /> : <Play fill="primary" />}
       Run
     </Button>
   )
@@ -289,8 +292,34 @@ function RunButton() {
 // The sidebar itself — header on top, then the Toolbar / Editor tabs.
 // ---------------------------------------------------------------------------
 
-export function RightSidebar() {
+interface RunHandle {
+  runId: string
+  publicAccessToken: string
+}
+
+interface RightSidebarProps {
+  workflowId: string
+  runWorkflowAction: (workflowId: string) => Promise<RunHandle>
+}
+
+export function RightSidebar({
+  workflowId,
+  runWorkflowAction,
+}: RightSidebarProps) {
   const [tab, setTab] = useState("toolbar")
+  const [handle, setHandle] = useState<RunHandle | null>(null)
+  const [isPending, startTransition] = useTransition()
+
+  const handleRun = () => {
+    startTransition(async () => {
+      try {
+        setHandle(await runWorkflowAction(workflowId))
+      } catch {
+        setHandle(null)
+        toast.error("Failed to start workflow run")
+      }
+    })
+  }
 
   // TODO: read the currently selected node from React Flow.
   const selected: StepNodeType | undefined = undefined
@@ -298,18 +327,21 @@ export function RightSidebar() {
   // TODO: auto-switch to the Editor tab when the selection changes.
 
   return (
-    <ResizablePanel
-      className="bg-background"
-      defaultSize="16rem"
-      minSize="14rem"
-      maxSize="36rem"
-      groupResizeBehavior="preserve-pixel-size"
-    >
+    <div className="size-full bg-background">
       <Tabs value={tab} onValueChange={setTab} className="size-full gap-0">
         <div className="flex items-center justify-between border-b border-border p-2">
           <ActionsMenu />
-          <RunButton />
+          <RunButton isPending={isPending} onRun={handleRun} />
         </div>
+        {handle && (
+          <div className="border-b border-border p-2">
+            <WorkflowRunStatus
+              key={handle.runId}
+              runId={handle.runId}
+              publicAccessToken={handle.publicAccessToken}
+            />
+          </div>
+        )}
         <TabsList className="m-2 w-fit bg-background">
           <TabsTrigger
             value="toolbar"
@@ -331,6 +363,6 @@ export function RightSidebar() {
           <Inspector node={selected} />
         </TabsContent>
       </Tabs>
-    </ResizablePanel>
+    </div>
   )
 }

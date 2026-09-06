@@ -36,7 +36,12 @@ export function WorkflowShell({ workflowId }: WorkflowShellProps) {
         </ResizablePanelGroup>
       </ResizablePanel>
       <ResizableHandle withHandle />
-      <ResizablePanel defaultSize="16rem" minSize="14rem" maxSize="36rem">
+      <ResizablePanel
+        defaultSize="16rem"
+        minSize="14rem"
+        maxSize="36rem"
+        groupResizeBehavior="preserve-pixel-size"
+      >
         <RightSidebar
           workflowId={workflowId}
           runWorkflowAction={runWorkflowAction}
