@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import { MoreHorizontal, Play, Trash2 } from "lucide-react"
 import { useReactFlow, useStore } from "@xyflow/react"
 import { toast } from "sonner"
@@ -252,7 +253,30 @@ function Palette() {
 // ---------------------------------------------------------------------------
 
 // The "..." menu for workflow-level actions.
-function ActionsMenu() {
+function ActionsMenu({
+  workflowId,
+  deleteWorkflowAction,
+}: {
+  workflowId: string
+  deleteWorkflowAction: (workflowId: string) => Promise<void>
+}) {
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+
+  const handleDelete = () => {
+    startTransition(async () => {
+      try {
+        await deleteWorkflowAction(workflowId)
+      } catch {
+        toast.error("Failed to delete workflow")
+        return
+      }
+
+      // The workflow this page renders is gone, so leave for the home page.
+      router.push("/")
+    })
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -263,12 +287,16 @@ function ActionsMenu() {
       <DropdownMenuContent align="start" className="min-w-48">
         <DropdownMenuItem
           variant="destructive"
+          disabled={isPending}
           className="text-xs [&_svg:not([class*='size-'])]:size-3.5"
-          onSelect={() => {
-            // TODO: delete the workflow, then navigate away.
+          onSelect={(e) => {
+            // Keep the menu open while the delete runs so the item can show it
+            // is in flight instead of the menu closing on an unfinished action.
+            e.preventDefault()
+            handleDelete()
           }}
         >
-          <Trash2 />
+          {isPending ? <Spinner /> : <Trash2 />}
           Delete workflow
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -305,11 +333,13 @@ interface RunHandle {
 
 interface RightSidebarProps {
   workflowId: string
+  deleteWorkflowAction: (workflowId: string) => Promise<void>
   runWorkflowAction: (workflowId: string) => Promise<RunHandle>
 }
 
 export function RightSidebar({
   workflowId,
+  deleteWorkflowAction,
   runWorkflowAction,
 }: RightSidebarProps) {
   const [tab, setTab] = useState("toolbar")
@@ -342,7 +372,10 @@ export function RightSidebar({
     <div className="size-full bg-background">
       <Tabs value={tab} onValueChange={setTab} className="size-full gap-0">
         <div className="flex items-center justify-between border-b border-border p-2">
-          <ActionsMenu />
+          <ActionsMenu
+            workflowId={workflowId}
+            deleteWorkflowAction={deleteWorkflowAction}
+          />
           <RunButton isPending={isPending} onRun={handleRun} />
         </div>
         {handle && (

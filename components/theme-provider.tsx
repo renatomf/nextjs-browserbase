@@ -47,7 +47,10 @@ function ThemeHotkey() {
         return
       }
 
-      if (event.key.toLowerCase() !== "d") {
+      // Not every "keydown" reaching window is a real KeyboardEvent — browser
+      // extensions and password managers dispatch bare Events, which carry no
+      // `key`. Guard before calling a string method on it.
+      if (typeof event.key !== "string" || event.key.toLowerCase() !== "d") {
         return
       }
 
