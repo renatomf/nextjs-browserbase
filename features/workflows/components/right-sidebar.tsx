@@ -28,6 +28,11 @@ import { WorkflowRunStatus } from "@/features/workflows/components/workflow-run-
 import { cn } from "@/lib/utils"
 
 import {
+  deleteWorkflowAction,
+  runWorkflowAction,
+} from "@/features/workflows/actions"
+import { validateGraph } from "@/features/workflows/lib/validate-graph"
+import {
   nodeRegistry,
   type NodeDefinition,
   type NodeField,
@@ -166,24 +171,24 @@ const sections: { kind: StepNodeKind; label: string }[] = [
 // Every node type from the registry, filtered into the groups below.
 const definitions = Object.values(nodeRegistry)
 
-
 // The Toolbar tab: a button per node type that adds it to the canvas.
 function Palette() {
-  
-    // The shared React Flow store (lifted to a provider above the canvas and this
+  // The shared React Flow store (lifted to a provider above the canvas and this
   // sidebar) lets us read the current nodes/viewport and add to them from here.
   const { getNodes, getViewport, addNodes } = useReactFlow<StepNodeType>()
   // The pane's measured size, used to find the center of the current view.
   const width = useStore((s) => s.width)
   const height = useStore((s) => s.height)
 
-
-  const add = (type: NodeType) => {    
+  const add = (type: NodeType) => {
     const def = nodeRegistry[type]
     const nodes = getNodes()
 
     // Only one trigger is allowed — a workflow has a single entry point.
-    if (def.kind === "trigger" && nodes.some((n) => n.data.kind === "trigger")) {
+    if (
+      def.kind === "trigger" &&
+      nodes.some((n) => n.data.kind === "trigger")
+    ) {
       toast.error("A workflow can only have one trigger.")
       return
     }
@@ -209,7 +214,7 @@ function Palette() {
       data: { type, kind: def.kind, title, values: {} },
     })
   }
-  
+
   return (
     <Section title="Toolbar">
       <Accordion
@@ -253,13 +258,7 @@ function Palette() {
 // ---------------------------------------------------------------------------
 
 // The "..." menu for workflow-level actions.
-function ActionsMenu({
-  workflowId,
-  deleteWorkflowAction,
-}: {
-  workflowId: string
-  deleteWorkflowAction: (workflowId: string) => Promise<void>
-}) {
+function ActionsMenu({ workflowId }: { workflowId: string }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
@@ -304,19 +303,49 @@ function ActionsMenu({
   )
 }
 
-// Kicks off a run of the current workflow. The run itself is owned by the
-// sidebar below, which also renders the live status of the run this starts.
+// The pieces of a started run the status panel needs to subscribe to it.
+interface RunHandle {
+  id: string
+  publicAccessToken: string
+}
+
+// Kicks off a run of the current workflow, handing the handle back to the
+// sidebar so it can show the run's live status.
 function RunButton({
-  isPending,
-  onRun,
+  workflowId,
+  onStarted,
 }: {
-  isPending: boolean
-  onRun: () => void
+  workflowId: string
+  onStarted: (handle: RunHandle) => void
 }) {
-  // TODO: validate the graph before running (and toggle to Stop while running).
+  const { getNodes, getEdges } = useReactFlow<StepNodeType>()
+  const [isPending, startTransition] = useTransition()
+
+  const handleRun = () => {
+    const graph = { nodes: getNodes(), edges: getEdges() }
+    const problems = validateGraph(graph)
+    if (problems.length > 0) {
+      toast.error(problems[0])
+      return
+    }
+
+    startTransition(async () => {
+      try {
+        onStarted(await runWorkflowAction({ id: workflowId, graph }))
+      } catch {
+        toast.error("Failed to start workflow run")
+      }
+    })
+  }
+
   return (
-    <Button size="sm" variant="secondary" onClick={onRun} disabled={isPending}>
-      {isPending ? <Spinner /> : <Play fill="primary" />}
+    <Button
+      size="sm"
+      variant="secondary"
+      disabled={isPending}
+      onClick={handleRun}
+    >
+      {isPending ? <Spinner /> : <Play />}
       Run
     </Button>
   )
@@ -326,42 +355,21 @@ function RunButton({
 // The sidebar itself — header on top, then the Toolbar / Editor tabs.
 // ---------------------------------------------------------------------------
 
-interface RunHandle {
-  runId: string
-  publicAccessToken: string
-}
+// The tab triggers are styled to read as plain toggles rather than the default
+// underlined tabs.
+const tabTriggerClassName =
+  "flex-none rounded-sm data-active:bg-accent! data-active:text-accent-foreground! data-active:shadow-none! dark:data-active:border-transparent!"
 
-interface RightSidebarProps {
-  workflowId: string
-  deleteWorkflowAction: (workflowId: string) => Promise<void>
-  runWorkflowAction: (workflowId: string) => Promise<RunHandle>
-}
-
-export function RightSidebar({
-  workflowId,
-  deleteWorkflowAction,
-  runWorkflowAction,
-}: RightSidebarProps) {
+export function RightSidebar({ workflowId }: { workflowId: string }) {
   const [tab, setTab] = useState("toolbar")
   const [handle, setHandle] = useState<RunHandle | null>(null)
-  const [isPending, startTransition] = useTransition()
 
+  // The currently selected node, read from the shared React Flow store.
+  const selected = useStore((s) => s.nodes.find((n) => n.selected)) as
+    | StepNodeType
+    | undefined
 
-  const handleRun = () => {
-    startTransition(async () => {
-      try {
-        setHandle(await runWorkflowAction(workflowId))
-      } catch {
-        setHandle(null)
-        toast.error("Failed to start workflow run")
-      }
-    })
-  }
-
-  // TODO: read the currently selected node from React Flow.
-  const selected = useStore((s) => s.nodes.find((n) => n.selected)) as StepNodeType | undefined
-
-  // TODO: auto-switch to the Editor tab when the selection changes.
+  // Auto-switch to the Editor tab when the selection changes.
   const [prevSelectedId, setPrevSelectedId] = useState(selected?.id)
   if (selected && selected.id !== prevSelectedId) {
     setPrevSelectedId(selected.id)
@@ -372,32 +380,23 @@ export function RightSidebar({
     <div className="size-full bg-background">
       <Tabs value={tab} onValueChange={setTab} className="size-full gap-0">
         <div className="flex items-center justify-between border-b border-border p-2">
-          <ActionsMenu
-            workflowId={workflowId}
-            deleteWorkflowAction={deleteWorkflowAction}
-          />
-          <RunButton isPending={isPending} onRun={handleRun} />
+          <ActionsMenu workflowId={workflowId} />
+          <RunButton workflowId={workflowId} onStarted={setHandle} />
         </div>
         {handle && (
           <div className="border-b border-border p-2">
             <WorkflowRunStatus
-              key={handle.runId}
-              runId={handle.runId}
+              key={handle.id}
+              runId={handle.id}
               publicAccessToken={handle.publicAccessToken}
             />
           </div>
         )}
         <TabsList className="m-2 w-fit bg-background">
-          <TabsTrigger
-            value="toolbar"
-            className="flex-none rounded-sm data-active:bg-accent! data-active:text-accent-foreground! data-active:shadow-none! dark:data-active:border-transparent!"
-          >
+          <TabsTrigger value="toolbar" className={tabTriggerClassName}>
             Toolbar
           </TabsTrigger>
-          <TabsTrigger
-            value="editor"
-            className="flex-none rounded-sm data-active:bg-accent! data-active:text-accent-foreground! data-active:shadow-none! dark:data-active:border-transparent!"
-          >
+          <TabsTrigger value="editor" className={tabTriggerClassName}>
             Editor
           </TabsTrigger>
         </TabsList>

@@ -1,7 +1,3 @@
-import {
-  deleteWorkflowAction,
-  runWorkflowAction,
-} from "@/features/workflows/actions"
 import { Canvas } from "@/features/workflows/components/canvas"
 import { RightSidebar } from "@/features/workflows/components/right-sidebar"
 import {
@@ -45,11 +41,7 @@ export function WorkflowShell({ workflowId }: WorkflowShellProps) {
         maxSize="36rem"
         groupResizeBehavior="preserve-pixel-size"
       >
-        <RightSidebar
-          workflowId={workflowId}
-          deleteWorkflowAction={deleteWorkflowAction}
-          runWorkflowAction={runWorkflowAction}
-        />
+        <RightSidebar workflowId={workflowId} />
       </ResizablePanel>
     </ResizablePanelGroup>
   )
