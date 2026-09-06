@@ -322,7 +322,7 @@ export function RightSidebar({
   }
 
   // TODO: read the currently selected node from React Flow.
-  const selected: StepNodeType | undefined = undefined
+  const selected = useStore((s) => s.nodes.find((n) => n.selected)) as StepNodeType | undefined
 
   // TODO: auto-switch to the Editor tab when the selection changes.
 
