@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react"
 import { MoreHorizontal, Play, Trash2 } from "lucide-react"
-import { useReactFlow, useStore, useStoreApi } from "@xyflow/react"
+import { useReactFlow, useStore } from "@xyflow/react"
 import { toast } from "sonner"
 
 import {
@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Spinner } from "@/components/ui/spinner"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
 import { WorkflowRunStatus } from "@/features/workflows/components/workflow-run-status"
 import { cn } from "@/lib/utils"
 
@@ -85,8 +86,9 @@ function Section({
 // Editor tab — edits the fields of the selected node.
 // ---------------------------------------------------------------------------
 
-// A single editor field for a node property.
-function FieldInput({
+// The control a node property asked for — a textarea when it opts into
+// multiline, an input otherwise. The Inspector renders the label above it.
+function Field({
   field,
   value,
   onChange,
@@ -95,9 +97,9 @@ function FieldInput({
   value: string
   onChange: (value: string) => void
 }) {
-  // TODO: support a multiline field variant (textarea).
+  const Control = field.multiline ? Textarea : Input
   return (
-    <Input
+    <Control
       id={field.key}
       value={value}
       placeholder={field.placeholder}
@@ -131,8 +133,9 @@ function Inspector({ node }: { node: StepNodeType | undefined }) {
             <div key={field.key} className="flex flex-col gap-1.5">
               <Label htmlFor={field.key} className="text-xs">
                 {field.label}
+                {field.required && <span className="text-destructive">*</span>}
               </Label>
-              <FieldInput
+              <Field
                 field={field}
                 value={values[field.key] ?? ""}
                 onChange={(value) => {
@@ -313,6 +316,7 @@ export function RightSidebar({
   const [handle, setHandle] = useState<RunHandle | null>(null)
   const [isPending, startTransition] = useTransition()
 
+
   const handleRun = () => {
     startTransition(async () => {
       try {
@@ -328,6 +332,11 @@ export function RightSidebar({
   const selected = useStore((s) => s.nodes.find((n) => n.selected)) as StepNodeType | undefined
 
   // TODO: auto-switch to the Editor tab when the selection changes.
+  const [prevSelectedId, setPrevSelectedId] = useState(selected?.id)
+  if (selected && selected.id !== prevSelectedId) {
+    setPrevSelectedId(selected.id)
+    setTab("editor")
+  }
 
   return (
     <div className="size-full bg-background">
