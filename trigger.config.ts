@@ -19,4 +19,12 @@ export default defineConfig({
     },
   },
   dirs: ["features"],
+  build: {
+    // Stagehand ships a Chrome extension zip that it uploads to Browserbase on
+    // session start, and it finds that zip by walking up from its own file. Once
+    // bundled, that walk lands inside .trigger/ instead of node_modules and the
+    // read fails, surfacing as "Failed to upload the Stagehand extension". Keeping
+    // the package external leaves it in node_modules with its assets intact.
+    external: ["@browserbasehq/stagehand"],
+  },
 })

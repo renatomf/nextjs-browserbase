@@ -1,13 +1,16 @@
 import toposort from "toposort"
-import { logger, metadata, task } from "@trigger.dev/sdk"
-
+import { logger, task } from "@trigger.dev/sdk"
+import {
+  browserbase,
+  Stagehand,
+  type StagehandBrowser,
+} from "@browserbasehq/stagehand"
+import { nodeExecutors } from "@/features/workflows/nodes/node-executors"
 import { getWorkflow } from "@/features/workflows/data"
 
-
 // The Trigger.dev task the Run button fires. It loads the saved graph, works out
-// what order the nodes should run in, and walks them. For now each node just
-// announces itself — real execution (per-node executors, live progress, browser
-// sessions) gets layered on from here.
+// what order the nodes should run in, and walks them, handing each node an
+// executor from the registry.
 export const runWorkflowTask = task({
   id: "run-workflow",
   run: async ({ workflowId, orgId }: { workflowId: string; orgId: string }) => {
@@ -29,12 +32,48 @@ export const runWorkflowTask = task({
 
     logger.log(`Running workflow ${workflow.name}`, { steps: order.length })
 
+    // The run owns one Browserbase session, opened lazily on the first browser
+    // step and reused by every later one, so the recording spans the whole flow.
+    let browser: StagehandBrowser | undefined
+    let stagehand: Stagehand | undefined
+    // The Browserbase session id, captured the moment the session opens so it can
+    // be returned in the run's output — a panel reads it there to fetch the replay
+    // once the run finishes and the recording is available.
+    let browserbaseSessionId: string | undefined
+
+    const getStagehand = async () => {
+      if (stagehand) return stagehand
+
+      const apiKey = process.env.BROWSERBASE_API_KEY
+      if (!apiKey) throw new Error("BROWSERBASE_API_KEY is not set")
+
+      // v4 splits what v3's constructor did: a factory opens the session, then
+      // Stagehand.create() attaches to it (the constructor itself is private).
+      browser = await browserbase.launch({ apiKey })
+      browserbaseSessionId = browser.sessionId
+      logger.log("Started Browserbase session", { browserbaseSessionId })
+
+      // The same Browserbase key again, this time as the Stagehand API key — it's
+      // what unlocks the managed services, so the LLM routes through Browserbase's
+      // Model Gateway and no separate provider key is needed.
+      stagehand = await Stagehand.create({
+        browser,
+        apiKey,
+        model: { modelName: "google/gemini-2.5-flash" },
+      })
+      return stagehand
+    }
+
     for (const id of order) {
       const node = byId.get(id)!
       logger.log(`Running step: ${node.data.title}`)
-      // TODO: actually execute the node instead of just logging it, and report its progress so the UI can watch the run live
+      //TODO: actually execute the node instead of just logging it, and report its progress so the UI can watch the run live.
+      const executor = nodeExecutors[node.data.type]
+      if (executor) await executor({ values: node.data.values, getStagehand })
     }
 
-    return { steps: order.length}
+    await stagehand?.close()
+
+    return { steps: order.length }
   },
 })
