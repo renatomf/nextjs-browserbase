@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
 import { auth } from "@clerk/nextjs/server"
+import { ReactFlowProvider } from "@xyflow/react"
 
 import { liveblocks } from "@/lib/liveblocks"
 import { getWorkflow } from "@/features/workflows/data"
@@ -30,9 +31,13 @@ export default async function Page({
     },
   })
 
+  // The palette lives in the sidebar, outside <ReactFlow>, so the provider has
+  // to sit above both of them for the two to share a single React Flow store.
   return (
     <Room roomId={id}>
-      <WorkflowShell workflowId={id} />
+      <ReactFlowProvider>
+        <WorkflowShell workflowId={id} />
+      </ReactFlowProvider>
     </Room>
   )
 }
