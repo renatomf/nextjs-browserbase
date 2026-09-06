@@ -12,8 +12,11 @@ import {
   type ColorMode,
   type Edge,
   NodeTypes,
+  Panel
 } from "@xyflow/react"
 import { useLiveblocksFlow, Cursors } from "@liveblocks/react-flow"
+import { AvatarStack } from "@liveblocks/react-ui"
+
 import { useTheme } from "next-themes"
 
 
@@ -110,6 +113,9 @@ export function Canvas() {
         {/* <MiniMap pannable zoomable /> */}
         <Controls />
         <Cursors />
+        <Panel position="top-right">
+          <AvatarStack />
+        </Panel>
       </ReactFlow>
     </div>
   )
