@@ -2,7 +2,7 @@ import { notFound } from "next/navigation"
 import { auth } from "@clerk/nextjs/server"
 import { ReactFlowProvider } from "@xyflow/react"
 
-import { liveblocks } from "@/lib/liveblocks"
+import { getLiveblocks } from "@/lib/liveblocks"
 import { getWorkflow } from "@/features/workflows/data"
 import { Room } from "@/features/workflows/components/room"
 import { WorkflowShell } from "@/features/workflows/components/workflow-shell"
@@ -20,7 +20,7 @@ export default async function Page({
   if (!workflow) notFound()
 
   // Rooms are private by default under ID-token auth. Grant write access to tht owning org, matching the `groupIds: [orgId]` issued by the auth endpoint.
-  await liveblocks.getOrCreateRoom(id, {
+  await getLiveblocks().getOrCreateRoom(id, {
     organizationId: orgId,
     defaultAccesses: [],
     groupsAccesses: {
