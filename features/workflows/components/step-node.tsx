@@ -5,9 +5,11 @@ import {
   nodeRegistry,
   type StepNodeType,
 } from "../nodes/node-registry"
+import { useLatestRunSteps } from "./workflow-runs-provider"
+import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
 
-function StepNodeComponent({ data, selected }: NodeProps<StepNodeType>) {
+function StepNodeComponent({ id, data, selected }: NodeProps<StepNodeType>) {
   const { type, kind, title, values } = data
   const def = nodeRegistry[type]
   const Icon = def.icon
@@ -16,10 +18,24 @@ function StepNodeComponent({ data, selected }: NodeProps<StepNodeType>) {
   // A trigger starts the flow and takes no input, so it has no target handle.
   const hasTarget = kind !== "trigger"
 
+  const { steps, isLive } = useLatestRunSteps()
+  const status = steps.find((step) => step.nodeId === id)?.status
+
+  // Both colors are tied to the run still being live, in opposite directions.
+  // Blue is the in-flight state, so it needs a run that is actually still going —
+  // one that dies mid-step would otherwise leave its node spinning forever. Red
+  // is the verdict, so it waits for the run to settle: a step that failed on one
+  // attempt is about to be retried, and flashing it red between attempts would
+  // be noise rather than an answer.
+  const isRunning = status === "running" && isLive
+  const isFailed = status === "failed" && !isLive
+
   return (
     <div
       className={cn(
         "min-w-50 max-w-80 rounded-(--radius) border-2 border-border bg-card text-card-foreground",
+        isRunning && "border-blue-500",
+        isFailed && "border-destructive",
         selected && "ring-2 ring-ring ring-offset-2 ring-offset-background"
       )}
     >
@@ -39,7 +55,7 @@ function StepNodeComponent({ data, selected }: NodeProps<StepNodeType>) {
             def.accent
           )}
         >
-          <Icon className="size-4" />
+          {isRunning ? <Spinner className="size-4" /> : <Icon className="size-4" />}
         </div>
         <span className="text-sm font-semibold">{title}</span>
       </div>
