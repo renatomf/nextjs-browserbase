@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useRef, useState, useTransition, type FocusEvent } from "react"
 import { useRouter } from "next/navigation"
 import { MoreHorizontal, Play, Trash2 } from "lucide-react"
 import { useReactFlow, useStore } from "@xyflow/react"
@@ -31,6 +31,7 @@ import {
   deleteWorkflowAction,
   runWorkflowAction,
 } from "@/features/workflows/actions"
+import { useUpstreamConnections } from "@/features/workflows/hooks/use-upstream-connections"
 import { validateGraph } from "@/features/workflows/lib/validate-graph"
 import {
   nodeRegistry,
@@ -51,7 +52,15 @@ import {
 // ---------------------------------------------------------------------------
 
 // The accent-colored icon chip, mirroring the node on the canvas.
-function NodeIcon({ type, className }: { type: NodeType; className?: string }) {
+function NodeIcon({
+  type,
+  className,
+  iconClassName = "size-3.5",
+}: {
+  type: NodeType
+  className?: string
+  iconClassName?: string
+}) {
   const def = nodeRegistry[type]
   const Icon = def.icon
   return (
@@ -62,7 +71,7 @@ function NodeIcon({ type, className }: { type: NodeType; className?: string }) {
         className
       )}
     >
-      <Icon className="size-3.5" />
+      <Icon className={iconClassName} />
     </span>
   )
 }
@@ -94,14 +103,20 @@ function Section({
 
 // The control a node property asked for — a textarea when it opts into
 // multiline, an input otherwise. The Inspector renders the label above it.
+// The element a field renders into — the Inspector keeps the last one focused so
+// a connection chip knows where to insert.
+type FieldElement = HTMLInputElement | HTMLTextAreaElement
+
 function Field({
   field,
   value,
   onChange,
+  onFocus,
 }: {
   field: NodeField
   value: string
   onChange: (value: string) => void
+  onFocus: (el: FieldElement) => void
 }) {
   const Control = field.multiline ? Textarea : Input
   return (
@@ -110,6 +125,7 @@ function Field({
       value={value}
       placeholder={field.placeholder}
       onChange={(e) => onChange(e.target.value)}
+      onFocus={(e: FocusEvent<FieldElement>) => onFocus(e.currentTarget)}
     />
   )
 }
@@ -117,6 +133,13 @@ function Field({
 // The Editor tab: one input per field on the selected node, or an empty state.
 function Inspector({ node }: { node: StepNodeType | undefined }) {
   const { updateNodeData } = useReactFlow<StepNodeType>()
+  // Every output produced anywhere upstream of the selected node, as insertable
+  // tokens. The hook reads the selection from the store itself.
+  const connections = useUpstreamConnections()
+  // The field the user last put a cursor in. A ref, not state — nothing renders
+  // from it, and it is read only when a chip is clicked. Cleared on selection
+  // change by the key on this component.
+  const lastEdited = useRef<{ key: string; el: FieldElement } | null>(null)
 
   if (!node) {
     return (
@@ -128,6 +151,44 @@ function Inspector({ node }: { node: StepNodeType | undefined }) {
 
   const { type, title, values } = node.data
   const def: NodeDefinition = nodeRegistry[type]
+
+  // Drops a token into the field the user was last in, or the first field when
+  // they have not focused one yet, splicing it at the cursor rather than
+  // appending so it lands where they were typing.
+  const insert = (token: string) => {
+    const last = lastEdited.current
+    const key = last?.key ?? def.fields[0]?.key
+    if (!key) return
+
+    // A blurred input keeps its selection, so the cursor is still where it was
+    // left. Null means no field has been focused yet — append in that case.
+    const el = last?.el
+    const start = el?.selectionStart ?? null
+    const end = el?.selectionEnd ?? null
+
+    updateNodeData(node.id, (current) => {
+      const value = current.data.values[key] ?? ""
+      return {
+        values: {
+          ...current.data.values,
+          [key]:
+            value.slice(0, start ?? value.length) +
+            token +
+            value.slice(end ?? value.length),
+        },
+      }
+    })
+
+    if (!el) return
+
+    // Hand focus back with the cursor after the token, once React has rendered
+    // the new value — moving it any earlier would be undone by that render.
+    const caret = (start ?? el.value.length) + token.length
+    requestAnimationFrame(() => {
+      el.focus()
+      el.setSelectionRange(caret, caret)
+    })
+  }
 
   return (
     <Section title={title} icon={<NodeIcon type={type} />}>
@@ -149,11 +210,41 @@ function Inspector({ node }: { node: StepNodeType | undefined }) {
                     values: { ...values, [field.key]: value },
                   })
                 }}
+                onFocus={(el) => {
+                  lastEdited.current = { key: field.key, el }
+                }}
               />
             </div>
           ))
         )}
       </div>
+      {/* Only worth showing when there is somewhere to put a token — a node
+          without fields has nothing a chip could insert into. */}
+      {connections.length > 0 && def.fields.length > 0 && (
+        <div className="flex flex-col gap-2 border-t border-border p-3">
+          <p className="text-xs font-medium text-muted-foreground">
+            Connections
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {connections.map((connection) => (
+              <button
+                key={connection.token}
+                type="button"
+                title={connection.token}
+                onClick={() => insert(connection.token)}
+                className="flex items-center gap-1.5 rounded-full border border-border bg-card py-0.5 pr-2 pl-0.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                <NodeIcon
+                  type={connection.nodeType}
+                  className="size-4 rounded-full"
+                  iconClassName="size-2.5"
+                />
+                {connection.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </Section>
   )
 }
@@ -404,7 +495,7 @@ export function RightSidebar({ workflowId }: { workflowId: string }) {
           <Palette />
         </TabsContent>
         <TabsContent value="editor" className="flex min-h-0 flex-col">
-          <Inspector node={selected} />
+          <Inspector key={selected?.id} node={selected} />
         </TabsContent>
       </Tabs>
     </div>
